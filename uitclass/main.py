@@ -1,5 +1,6 @@
 from contextlib import asynccontextmanager
-from  fastapi import FastAPI
+from http import client
+from  fastapi import FastAPI, HTTPException
 from sqlmodel import SQLModel,Field,create_engine,Session,select
 from typing import Union, Optional, Annotated
 from uitclass import settings
@@ -46,17 +47,39 @@ def create_todo(todo: Todo):
               session.commit()
               session.refresh(todo)
               return todo
+# @app.put("/todos/{todo_id}")
+# def update_todo(todo_id: int, todo: Todo):
+#        with Session(engine) as session:
+#               session.exec(Todo).filter(Todo.id == todo_id)
+#               session.commit()
+#               session.close()
+#               return todo
 
 @app.get("/todos/")
 def read_todos():
        with Session(engine) as session:
               todos = session.exec((Todo)).all()
               return todos
-
-@app.post("/todos1/")
-def create_todo(todo1: Todo):
+       
+@app.put("/todos/{todo_id}")
+def update_todo(todo_id: int, todo_update: Todo):
        with Session(engine) as session:
-              session.add(todo1)
+              todo=session.get(Todo, todo_id)
+              if todo is None:
+                     raise HTTPException(status_code=404, detail="Todo not found")
+              if todo_update.content:
+                     todo.content = todo_update.content
+                     session.commit()
+                     session.refresh(todo)
+                     return todo
+
+@app.delete("/todos/{todo_id}")
+def delete_todo(todo_id: int):
+       with Session(engine) as session:
+              todo=session.get(Todo, todo_id)
+              if todo is None:
+                     raise HTTPException(status_code=404, detail="Todo not found")
+              session.delete(todo)
               session.commit()
-              session.refresh(todo1)
-              return todo1
+              return {"response":"todo deleted"}
+
